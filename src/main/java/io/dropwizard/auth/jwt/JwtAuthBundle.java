@@ -35,7 +35,7 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
         return key;
     }
 
-    public static void setKey(final String jwtKey) {
+    public void setKey(final String jwtKey) {
         key = new AesKey(jwtKey.getBytes());
     }
 
