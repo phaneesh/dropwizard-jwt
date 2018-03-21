@@ -5,6 +5,7 @@ import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.auth.jwt.config.JwtAuthConfig;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import org.jose4j.jwt.consumer.Validator;
 
 public abstract class JwtAuthBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
@@ -24,5 +25,9 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
     }
 
     public abstract JwtAuthConfig getConfig(T configuration);
+
+    public Validator validator() {
+        return null;
+    }
 
 }
