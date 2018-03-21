@@ -8,10 +8,7 @@ import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.NumericDate;
-import org.jose4j.jwt.consumer.InvalidJwtException;
-import org.jose4j.jwt.consumer.JwtConsumer;
-import org.jose4j.jwt.consumer.JwtConsumerBuilder;
-import org.jose4j.jwt.consumer.Validator;
+import org.jose4j.jwt.consumer.*;
 import org.jose4j.lang.JoseException;
 
 import java.security.Key;
@@ -42,6 +39,7 @@ public interface TokenUtils {
     }
 
     static JwtUser verify(Key key, String token, Validator validator) throws InvalidJwtException {
+
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
                 .setRequireJwtId()
                 .setAllowedClockSkewInSeconds(30)
@@ -49,7 +47,7 @@ public interface TokenUtils {
                 .setSkipSignatureVerification()
                 .setRequireSubject()
                 .setDecryptionKey(key)
-                .registerValidator(validator)
+                .registerValidator(validator != null ? validator : (Validator) JwtContext::getJwt)
                 .build();
         JwtClaims jwtClaims = jwtConsumer.processToClaims(token);
         return JwtUser.builder()
