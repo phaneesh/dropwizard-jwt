@@ -4,7 +4,6 @@ import io.dropwizard.auth.jwt.annotation.JwtAuthRequired;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.util.TokenUtils;
 import lombok.Builder;
-import org.jose4j.jwt.consumer.Validator;
 import org.jose4j.keys.AesKey;
 
 import javax.ws.rs.WebApplicationException;
@@ -23,12 +22,12 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
 
     private final Key key;
 
-    private final Validator validator;
+    private final JwtAuthorizer authorizer;
 
     @Builder
-    public JwtAuthDynamicFeature(final String key, final Validator validator) {
+    public JwtAuthDynamicFeature(final String key, final JwtAuthorizer authorizer) {
         this.key = new AesKey(key.getBytes());
-        this.validator = validator;
+        this.authorizer = authorizer;
     }
 
     public void configure(ResourceInfo resourceInfo, FeatureContext featureContext) {
@@ -52,7 +51,12 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             final String token = authHeader.startsWith("Bearer:") ? authHeader.replace("Bearer:", "").trim() : authHeader;
             JwtUser user;
             try {
-               user = TokenUtils.verify(key, token, validator);
+               user = TokenUtils.verify(key, token);
+               if(authorizer != null) {
+                   if(!authorizer.authorize(user.getClaims(), containerRequestContext)) {
+                       throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+                   }
+               }
             } catch (Exception e) {
                 throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
