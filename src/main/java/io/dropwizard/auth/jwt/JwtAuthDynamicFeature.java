@@ -4,7 +4,6 @@ import io.dropwizard.auth.jwt.annotation.JwtAuthRequired;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.util.TokenUtils;
 import lombok.Builder;
-import org.jose4j.keys.AesKey;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.ContainerRequestFilter;
@@ -14,19 +13,15 @@ import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Method;
-import java.security.Key;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class JwtAuthDynamicFeature implements DynamicFeature {
 
-    private final Key key;
-
     private final JwtAuthorizer authorizer;
 
     @Builder
-    public JwtAuthDynamicFeature(final String key, final JwtAuthorizer authorizer) {
-        this.key = new AesKey(key.getBytes());
+    public JwtAuthDynamicFeature(final JwtAuthorizer authorizer) {
         this.authorizer = authorizer;
     }
 
@@ -51,7 +46,7 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             final String token = authHeader.startsWith("Bearer:") ? authHeader.replace("Bearer:", "").trim() : authHeader;
             JwtUser user;
             try {
-               user = TokenUtils.verify(key, token);
+               user = TokenUtils.verify(JwtAuthBundle.getKey(), token);
                if(authorizer != null) {
                    if(!authorizer.authorize(user.getClaims(), containerRequestContext)) {
                        throw new WebApplicationException(Response.Status.UNAUTHORIZED);
