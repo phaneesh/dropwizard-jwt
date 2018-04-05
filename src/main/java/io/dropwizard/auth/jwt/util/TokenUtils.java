@@ -21,9 +21,11 @@ public interface TokenUtils {
     static String generate(Key key, TokenRequest tokenRequest) throws JoseException {
         JsonWebEncryption jwe = new JsonWebEncryption();
         jwe.setAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.WHITELIST,
-                KeyManagementAlgorithmIdentifiers.A256KW));
+                KeyManagementAlgorithmIdentifiers.A128KW));
         jwe.setContentEncryptionAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.WHITELIST,
                 ContentEncryptionAlgorithmIdentifiers.AES_256_CBC_HMAC_SHA_512));
+        jwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.A128KW);
+        jwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_256_CBC_HMAC_SHA_512);
         jwe.setKey(key);
         JwtClaims claims = new JwtClaims();
         claims.setSubject(tokenRequest.getSubject());
@@ -47,6 +49,7 @@ public interface TokenUtils {
                 .setDisableRequireSignature()
                 .setSkipSignatureVerification()
                 .setRequireSubject()
+                .setSkipDefaultAudienceValidation()
                 .setDecryptionKey(key)
                 .build();
         JwtClaims jwtClaims = jwtConsumer.processToClaims(token);
