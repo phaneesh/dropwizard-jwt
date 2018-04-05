@@ -33,11 +33,11 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
                     .filter(annotation -> annotation.annotationType().equals(JwtAuthRequired.class))
                     .map(JwtAuthRequired.class::cast)
                     .findFirst()
-                    .ifPresent(authRequired -> featureContext.register(getAuthFilter()));
+                    .ifPresent(authRequired -> featureContext.register(getAuthFilter(authRequired)));
         }
     }
 
-    private ContainerRequestFilter getAuthFilter() {
+    private ContainerRequestFilter getAuthFilter(JwtAuthRequired authRequired) {
         return containerRequestContext -> {
             final String authHeader = containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
             if (authHeader == null) {
@@ -47,10 +47,21 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             JwtUser user;
             try {
                user = TokenUtils.verify(JwtAuthBundle.getKey(), token);
-               if(authorizer != null) {
-                   if(!authorizer.authorize(user.getClaims(), containerRequestContext)) {
-                       throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+               boolean authorize = false;
+               for(String audience : authRequired.value()) {
+                   if(user.getClaims().getAudience().contains(audience)) {
+                       authorize = true;
+                       break;
                    }
+               }
+               if(authorize) {
+                   if (authorizer != null) {
+                       if (!authorizer.authorize(user.getClaims(), containerRequestContext)) {
+                           throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+                       }
+                   }
+               } else {
+                   throw new WebApplicationException(Response.Status.UNAUTHORIZED);
                }
             } catch (Exception e) {
                 throw new WebApplicationException(Response.Status.UNAUTHORIZED);
