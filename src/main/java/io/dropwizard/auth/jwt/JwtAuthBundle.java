@@ -5,7 +5,6 @@ import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import org.jose4j.jwe.AesKeyWrapManagementAlgorithm;
 import org.jose4j.keys.AesKey;
 
 import java.security.Key;
