@@ -3,6 +3,7 @@ package io.dropwizard.auth.jwt;
 import com.google.common.base.Preconditions;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.auth.jwt.resources.TokenResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import org.jose4j.keys.AesKey;
@@ -19,6 +20,7 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
                 .authorizer(authorizer())
                 .build());
         environment.jersey().register(new JwtAuthValueFactoryProvider.Binder());
+        environment.jersey().register(new TokenResource());
     }
 
     @Override
