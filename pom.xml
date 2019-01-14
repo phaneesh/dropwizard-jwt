@@ -50,7 +50,6 @@
         <jose4j.version>0.6.4</jose4j.version>
         <lombok.version>1.18.4</lombok.version>
         <junit.version>4.12</junit.version>
-        <guava.version>27.0.1-jre</guava.version>
         <caffeine.version>2.6.2</caffeine.version>
     </properties>
 
@@ -82,11 +81,6 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
