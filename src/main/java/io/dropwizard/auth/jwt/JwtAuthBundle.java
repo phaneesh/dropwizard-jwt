@@ -3,6 +3,7 @@ package io.dropwizard.auth.jwt;
 import com.google.common.base.Preconditions;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.resources.TokenResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -16,8 +17,10 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
 
     @Override
     public void run(T configuration, Environment environment) throws Exception {
+        final JwtAuthBundleConfiguration jwtAuthBundleConfiguration = getJwtAuthBundleConfiguration(configuration);
         environment.jersey().register(JwtAuthDynamicFeature.builder()
                 .authorizer(authorizer())
+                .configuration(jwtAuthBundleConfiguration)
                 .build());
         environment.jersey().register(new JwtAuthValueFactoryProvider.Binder());
         environment.jersey().register(new TokenResource());
@@ -25,7 +28,10 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
+    }
 
+    protected JwtAuthBundleConfiguration getJwtAuthBundleConfiguration(T configuration) {
+        return new JwtAuthBundleConfiguration();
     }
 
     protected JwtAuthorizer authorizer() {
