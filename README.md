@@ -33,7 +33,7 @@ Use the following maven dependency:
 <dependency>
     <groupId>io.dropwizard.auth</groupId>
     <artifactId>dropwizard-jwt</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.3.12-1</version>
 </dependency>
 ```
 
