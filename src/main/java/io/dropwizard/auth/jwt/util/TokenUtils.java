@@ -1,5 +1,6 @@
 package io.dropwizard.auth.jwt.util;
 
+import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.core.TokenRequest;
 import org.jose4j.jwa.AlgorithmConstraints;
@@ -42,10 +43,10 @@ public interface TokenUtils {
         return jwe.getCompactSerialization();
     }
 
-    static JwtUser verify(Key key, String token) throws InvalidJwtException {
+    static JwtUser verify(Key key, String token, JwtAuthBundleConfiguration configuration) throws InvalidJwtException {
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
                 .setRequireJwtId()
-                .setAllowedClockSkewInSeconds(30)
+                .setAllowedClockSkewInSeconds(configuration.getClockSkew())
                 .setDisableRequireSignature()
                 .setSkipSignatureVerification()
                 .setRequireSubject()
