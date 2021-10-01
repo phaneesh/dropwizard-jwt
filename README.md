@@ -31,9 +31,9 @@ Use the following repository:
 Use the following maven dependency:
 ```xml
 <dependency>
-    <groupId>io.dropwizard.auth</groupId>
+    <groupId>>io.raven.dropwizard.auth</groupId>
     <artifactId>dropwizard-jwt</artifactId>
-    <version>1.3.12-1</version>
+    <version>1.3.29-1</version>
 </dependency>
 ```
 
