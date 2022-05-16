@@ -15,6 +15,8 @@ import java.util.Set;
 @Builder
 public class JwtAuthBundleConfiguration {
 
+    private String key;
+
     private int cacheExpiry = 3600;
 
     private int cacheMaxSize = 1000;

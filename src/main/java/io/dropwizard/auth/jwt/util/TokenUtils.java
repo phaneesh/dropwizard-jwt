@@ -1,33 +1,19 @@
 package io.dropwizard.auth.jwt.util;
 
-import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.core.TokenRequest;
-import org.jose4j.jwa.AlgorithmConstraints;
-import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
 import org.jose4j.jwe.JsonWebEncryption;
-import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.NumericDate;
 import org.jose4j.jwt.consumer.InvalidJwtException;
 import org.jose4j.jwt.consumer.JwtConsumer;
-import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.lang.JoseException;
 
-import java.security.Key;
 import java.util.Map;
 
 public interface TokenUtils {
 
-    static String generate(Key key, TokenRequest tokenRequest) throws JoseException {
-        JsonWebEncryption jwe = new JsonWebEncryption();
-        jwe.setAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.WHITELIST,
-                KeyManagementAlgorithmIdentifiers.A128KW));
-        jwe.setContentEncryptionAlgorithmConstraints(new AlgorithmConstraints(AlgorithmConstraints.ConstraintType.WHITELIST,
-                ContentEncryptionAlgorithmIdentifiers.AES_256_CBC_HMAC_SHA_512));
-        jwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.A128KW);
-        jwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_256_CBC_HMAC_SHA_512);
-        jwe.setKey(key);
+    static String generate(JsonWebEncryption jwe, TokenRequest tokenRequest) throws JoseException {
         JwtClaims claims = new JwtClaims();
         claims.setSubject(tokenRequest.getSubject());
         claims.setIssuedAtToNow();
@@ -43,20 +29,10 @@ public interface TokenUtils {
         return jwe.getCompactSerialization();
     }
 
-    static JwtUser verify(Key key, String token, JwtAuthBundleConfiguration configuration) throws InvalidJwtException {
-        JwtConsumer jwtConsumer = new JwtConsumerBuilder()
-                .setRequireJwtId()
-                .setAllowedClockSkewInSeconds(configuration.getClockSkew())
-                .setDisableRequireSignature()
-                .setSkipSignatureVerification()
-                .setRequireSubject()
-                .setSkipDefaultAudienceValidation()
-                .setDecryptionKey(key)
-                .build();
+    static JwtUser verify(JwtConsumer jwtConsumer, String token) throws InvalidJwtException {
         JwtClaims jwtClaims = jwtConsumer.processToClaims(token);
         return JwtUser.builder()
                 .claims(jwtClaims)
                 .build();
     }
-
 }
