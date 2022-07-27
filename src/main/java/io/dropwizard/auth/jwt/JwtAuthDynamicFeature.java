@@ -8,6 +8,7 @@ import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.util.TokenUtils;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.glassfish.jersey.server.model.AnnotatedMethod;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.JwtConsumer;
@@ -18,8 +19,10 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.DynamicFeature;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.FeatureContext;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import java.lang.annotation.Annotation;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,22 +40,41 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
 
     private final LoadingCache<String, JwtUser> tokenCache;
 
+    private final String tokenHeader;
+
     @Builder
-    public JwtAuthDynamicFeature(final JwtConsumer jwtConsumer, final int cacheExpiry, final int cacheSize, final JwtAuthorizer authorizer) {
+    public JwtAuthDynamicFeature(final JwtConsumer jwtConsumer, final int cacheExpiry, final int cacheSize, final JwtAuthorizer authorizer, final String authHeader) {
+        this.tokenHeader = authHeader;
         this.jwtConsumer = jwtConsumer;
         this.authorizer = authorizer;
         tokenCache = Caffeine.newBuilder()
                 .expireAfterWrite(cacheExpiry, TimeUnit.SECONDS)
                 .maximumSize(cacheSize)
                 .build(this::getUser);
+
     }
+
 
     @Override
     public void configure(ResourceInfo resourceInfo, FeatureContext context) {
-        var authRequired = resourceInfo.getResourceMethod().getAnnotation(JwtAuthRequired.class);
-        if (Objects.nonNull(authRequired)) {
-            context.register(getAuthFilter(authRequired));
+        final AnnotatedMethod am = new AnnotatedMethod(resourceInfo.getResourceMethod());
+        final Annotation[][] parameterAnnotations = am.getParameterAnnotations();
+        for (int i = 0; i < parameterAnnotations.length; i++) {
+            var jwt = containsJWTAnnotation(parameterAnnotations[i]);
+            if (Objects.nonNull(jwt)) {
+                context.register(getAuthFilter(jwt));
+                return;
+            }
         }
+    }
+
+    private JwtAuthRequired containsJWTAnnotation(final Annotation[] annotations) {
+        for (final Annotation annotation : annotations) {
+            if (annotation instanceof JwtAuthRequired) {
+                return (JwtAuthRequired)annotation;
+            }
+        }
+        return null;
     }
 
     private JwtUser getUser(String token) {
@@ -65,7 +87,7 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
 
     private ContainerRequestFilter getAuthFilter(JwtAuthRequired authRequired) {
         return containerRequestContext -> {
-            final String authHeader = containerRequestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+            final String authHeader = containerRequestContext.getHeaderString(tokenHeader);
             if (authHeader == null) {
                 throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
@@ -108,6 +130,31 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             } catch (Exception e) {
                 throw new WebApplicationException(Response.Status.UNAUTHORIZED);
             }
+            containerRequestContext.setSecurityContext(new SecurityContext() {
+                @Override
+                public Principal getUserPrincipal() {
+                    return user;
+                }
+
+                @Override
+                public boolean isUserInRole(String s) {
+                    try {
+                        return user.getClaims().getAudience().contains(s);
+                    } catch(MalformedClaimException e) {
+                        return false;
+                    }
+                }
+
+                @Override
+                public boolean isSecure() {
+                    return true;
+                }
+
+                @Override
+                public String getAuthenticationScheme() {
+                    return "JWT";
+                }
+            });
             containerRequestContext.setProperty("user", user);
             try {
                 stampHeaders(containerRequestContext, user.getClaims());

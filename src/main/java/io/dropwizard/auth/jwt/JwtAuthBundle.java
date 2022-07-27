@@ -2,7 +2,6 @@ package io.dropwizard.auth.jwt;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
-import io.dropwizard.auth.AuthValueFactoryProvider;
 import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.resources.TokenResource;
@@ -55,10 +54,11 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
     environment.jersey().register(JwtAuthDynamicFeature.builder()
         .authorizer(authorizer())
             .jwtConsumer(jwtConsumer)
+            .authHeader(jwtAuthBundleConfiguration.getAuthHeader())
             .cacheExpiry(jwtAuthBundleConfiguration.getCacheExpiry())
             .cacheSize(jwtAuthBundleConfiguration.getCacheMaxSize())
         .build());
-    environment.jersey().register(new AuthValueFactoryProvider.Binder<>(JwtUser.class));
+    environment.jersey().register(new JwtUserValueFactoryProvider.Binder<>(JwtUser.class));
     environment.jersey().register(TokenResource.builder().jwe(jwe).build());
   }
 
@@ -74,8 +74,4 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
   protected JwtAuthorizer authorizer() {
     return null;
   }
-  public void setKey(final byte[] jwtKey) {
-    key = new AesKey(jwtKey);
-  }
-
 }
