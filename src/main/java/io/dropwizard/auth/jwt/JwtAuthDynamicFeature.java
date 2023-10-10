@@ -96,17 +96,11 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             try {
                 user = tokenCache.get(token);
                 boolean authorize = false;
-                for (String audience : authRequired.value()) {
-                    if(audience.equals("*")) {
-                        authorize = true;
-                        break;
-                    }
-                    if (user.getClaims().getAudience().contains(audience)) {
-                        authorize = true;
-                        break;
-                    }
+                authorize = Arrays.asList(authRequired.value()).contains("*");
+                if(!authorize) {
+                     authorize = user.getClaims().getAudience().contains("audience");
                 }
-                if (authRequired.authParams() != null && authRequired.authParams().length > 0) {
+                if (Objects.nonNull(authRequired.authParams())) {
                     for(JwtAuthParam param : authRequired.authParams()) {
                         if (user.getClaims().hasClaim(param.name()) &&
                                 user.getClaims().isClaimValueOfType(param.name(), ArrayList.class)) {
@@ -159,7 +153,7 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
             try {
                 stampHeaders(containerRequestContext, user.getClaims());
             } catch (MalformedClaimException e) {
-                log.error("Cannot stamp headers for user: {} | Error: {}", user.getName(), e);
+                log.error("Cannot stamp headers for user: {}", user.getName(), e);
             }
         };
     }
