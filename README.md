@@ -1,7 +1,7 @@
 # Dropwizard JWT Bundle [![Travis build status](https://travis-ci.org/phaneesh/dropwizard-jwt.svg?branch=master)](https://travis-ci.org/phaneesh/dropwizard-jwt)
 
 This bundle enables one to enable JWT authentication and authorization for all resources
-This bundle compiles only on Java 11.
+This bundle compiles only on Java 17.
 
 ## Features
 * Simple to use 
@@ -33,7 +33,7 @@ Use the following maven dependency:
 <dependency>
     <groupId>>io.raven.dropwizard.auth</groupId>
     <artifactId>dropwizard-jwt</artifactId>
-    <version>2.1.0-1</version>
+    <version>2.1.8-1</version>
 </dependency>
 ```
 
