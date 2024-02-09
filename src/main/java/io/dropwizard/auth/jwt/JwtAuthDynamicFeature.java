@@ -32,136 +32,147 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class JwtAuthDynamicFeature implements DynamicFeature {
 
-    public static final String AUTHORIZED_FOR_SUBJECT = "X-AUTHORIZED-FOR-SUBJECT";
-    public static final String AUTHORIZED_FOR_MASK = "X-AUTHORIZED-FOR-%s";
+  public static final String AUTHORIZED_FOR_SUBJECT = "X-AUTHORIZED-FOR-SUBJECT";
+  public static final String AUTHORIZED_FOR_MASK = "X-AUTHORIZED-FOR-%s";
 
-    private final JwtAuthorizer authorizer;
-    private final JwtConsumer jwtConsumer;
+  private final JwtAuthorizer authorizer;
+  private final JwtConsumer jwtConsumer;
 
-    private final LoadingCache<String, JwtUser> tokenCache;
+  private final LoadingCache<String, JwtUser> tokenCache;
 
-    private final String tokenHeader;
+  private final String tokenHeader;
 
-    @Builder
-    public JwtAuthDynamicFeature(final JwtConsumer jwtConsumer, final int cacheExpiry, final int cacheSize, final JwtAuthorizer authorizer, final String authHeader) {
-        this.tokenHeader = authHeader;
-        this.jwtConsumer = jwtConsumer;
-        this.authorizer = authorizer;
-        tokenCache = Caffeine.newBuilder()
-                .expireAfterWrite(cacheExpiry, TimeUnit.SECONDS)
-                .maximumSize(cacheSize)
-                .build(this::getUser);
+  @Builder
+  public JwtAuthDynamicFeature(
+      final JwtConsumer jwtConsumer,
+      final int cacheExpiry,
+      final int cacheSize,
+      final JwtAuthorizer authorizer,
+      final String authHeader) {
+    this.tokenHeader = authHeader;
+    this.jwtConsumer = jwtConsumer;
+    this.authorizer = authorizer;
+    this.tokenCache =
+        Caffeine.newBuilder()
+            .expireAfterWrite(cacheExpiry, TimeUnit.SECONDS)
+            .maximumSize(cacheSize)
+            .build(this::getUser);
+  }
 
+  @Override
+  public void configure(ResourceInfo resourceInfo, FeatureContext context) {
+    final AnnotatedMethod am = new AnnotatedMethod(resourceInfo.getResourceMethod());
+    final Annotation[][] parameterAnnotations = am.getParameterAnnotations();
+    for (int i = 0; i < parameterAnnotations.length; i++) {
+      var jwt = containsJWTAnnotation(parameterAnnotations[i]);
+      if (Objects.nonNull(jwt)) {
+        context.register(getAuthFilter(jwt));
+        return;
+      }
     }
+  }
 
+  private JwtAuthRequired containsJWTAnnotation(final Annotation[] annotations) {
+    for (final Annotation annotation : annotations) {
+      if (annotation instanceof JwtAuthRequired requiredAnnotation) {
+        return requiredAnnotation;
+      }
+    }
+    return null;
+  }
 
-    @Override
-    public void configure(ResourceInfo resourceInfo, FeatureContext context) {
-        final AnnotatedMethod am = new AnnotatedMethod(resourceInfo.getResourceMethod());
-        final Annotation[][] parameterAnnotations = am.getParameterAnnotations();
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            var jwt = containsJWTAnnotation(parameterAnnotations[i]);
-            if (Objects.nonNull(jwt)) {
-                context.register(getAuthFilter(jwt));
-                return;
-            }
+  private JwtUser getUser(String token) {
+    try {
+      return TokenUtils.verify(jwtConsumer, token);
+    } catch (Exception e) {
+      throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+    }
+  }
+
+  private ContainerRequestFilter getAuthFilter(JwtAuthRequired authRequired) {
+    return containerRequestContext -> {
+      final String authHeader = containerRequestContext.getHeaderString(tokenHeader);
+      if (authHeader == null) {
+        throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+      }
+      final String token =
+          authHeader.startsWith("Bearer:") ? authHeader.replace("Bearer:", "").trim() : authHeader;
+      JwtUser user;
+      try {
+        user = tokenCache.get(token);
+        boolean authorize = false;
+        authorize = Arrays.asList(authRequired.value()).contains("*");
+        if (!authorize) {
+          authorize = user.getClaims().getAudience().contains("audience");
         }
-    }
-
-    private JwtAuthRequired containsJWTAnnotation(final Annotation[] annotations) {
-        for (final Annotation annotation : annotations) {
-            if (annotation instanceof JwtAuthRequired) {
-                return (JwtAuthRequired)annotation;
+        if (Objects.nonNull(authRequired.authParams())) {
+          for (JwtAuthParam param : authRequired.authParams()) {
+            if (user.getClaims().hasClaim(param.name())
+                && user.getClaims().isClaimValueOfType(param.name(), ArrayList.class)) {
+              if (Collections.disjoint(
+                  Arrays.asList(param.value()),
+                  user.getClaims().getClaimValue(param.name(), ArrayList.class))) {
+                authorize = false;
+                break;
+              }
             }
+          }
         }
-        return null;
-    }
-
-    private JwtUser getUser(String token) {
-        try {
-            return TokenUtils.verify(jwtConsumer, token);
-        } catch (Exception e) {
+        if (authorize) {
+          if (Objects.nonNull(authorizer)
+              && !authorizer.authorize(user.getClaims(), containerRequestContext)) {
             throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+          }
+        } else {
+          throw new WebApplicationException(Response.Status.UNAUTHORIZED);
         }
-    }
-
-    private ContainerRequestFilter getAuthFilter(JwtAuthRequired authRequired) {
-        return containerRequestContext -> {
-            final String authHeader = containerRequestContext.getHeaderString(tokenHeader);
-            if (authHeader == null) {
-                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+      } catch (Exception e) {
+        throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+      }
+      containerRequestContext.setSecurityContext(
+          new SecurityContext() {
+            @Override
+            public Principal getUserPrincipal() {
+              return user;
             }
-            final String token = authHeader.startsWith("Bearer:") ? authHeader.replace("Bearer:", "").trim() : authHeader;
-            JwtUser user;
-            try {
-                user = tokenCache.get(token);
-                boolean authorize = false;
-                authorize = Arrays.asList(authRequired.value()).contains("*");
-                if(!authorize) {
-                     authorize = user.getClaims().getAudience().contains("audience");
-                }
-                if (Objects.nonNull(authRequired.authParams())) {
-                    for(JwtAuthParam param : authRequired.authParams()) {
-                        if (user.getClaims().hasClaim(param.name()) &&
-                                user.getClaims().isClaimValueOfType(param.name(), ArrayList.class)) {
-                            if (Collections.disjoint(Arrays.asList(param.value()),
-                                    user.getClaims().getClaimValue(param.name(), ArrayList.class))) {
-                                authorize = false;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (authorize) {
-                    if (authorizer != null) {
-                        if (!authorizer.authorize(user.getClaims(), containerRequestContext)) {
-                            throw new WebApplicationException(Response.Status.UNAUTHORIZED);
-                        }
-                    }
-                } else {
-                    throw new WebApplicationException(Response.Status.UNAUTHORIZED);
-                }
-            } catch (Exception e) {
-                throw new WebApplicationException(Response.Status.UNAUTHORIZED);
+
+            @Override
+            public boolean isUserInRole(String s) {
+              try {
+                return user.getClaims().getAudience().contains(s);
+              } catch (MalformedClaimException e) {
+                return false;
+              }
             }
-            containerRequestContext.setSecurityContext(new SecurityContext() {
-                @Override
-                public Principal getUserPrincipal() {
-                    return user;
-                }
 
-                @Override
-                public boolean isUserInRole(String s) {
-                    try {
-                        return user.getClaims().getAudience().contains(s);
-                    } catch(MalformedClaimException e) {
-                        return false;
-                    }
-                }
-
-                @Override
-                public boolean isSecure() {
-                    return true;
-                }
-
-                @Override
-                public String getAuthenticationScheme() {
-                    return "JWT";
-                }
-            });
-            containerRequestContext.setProperty("user", user);
-            try {
-                stampHeaders(containerRequestContext, user.getClaims());
-            } catch (MalformedClaimException e) {
-                log.error("Cannot stamp headers for user: {}", user.getName(), e);
+            @Override
+            public boolean isSecure() {
+              return true;
             }
-        };
-    }
 
-    public void stampHeaders(ContainerRequestContext requestContext, JwtClaims jwtClaims) throws MalformedClaimException {
-        requestContext.getHeaders().putSingle(AUTHORIZED_FOR_SUBJECT, jwtClaims.getSubject());
-        jwtClaims.flattenClaims().forEach( (s, objects) -> {
-            requestContext.getHeaders().putSingle(String.format(AUTHORIZED_FOR_MASK, s), String.valueOf(objects));
-        });
-    }
+            @Override
+            public String getAuthenticationScheme() {
+              return "JWT";
+            }
+          });
+      containerRequestContext.setProperty("user", user);
+      try {
+        stampHeaders(containerRequestContext, user.getClaims());
+      } catch (MalformedClaimException e) {
+        log.error("Cannot stamp headers for user: {}", user.getName(), e);
+      }
+    };
+  }
+
+  public void stampHeaders(ContainerRequestContext requestContext, JwtClaims jwtClaims)
+      throws MalformedClaimException {
+    requestContext.getHeaders().putSingle(AUTHORIZED_FOR_SUBJECT, jwtClaims.getSubject());
+    jwtClaims
+        .flattenClaims()
+        .forEach(
+            (s, objects) ->
+                requestContext
+                    .getHeaders()
+                    .putSingle(String.format(AUTHORIZED_FOR_MASK, s), String.valueOf(objects)));
+  }
 }

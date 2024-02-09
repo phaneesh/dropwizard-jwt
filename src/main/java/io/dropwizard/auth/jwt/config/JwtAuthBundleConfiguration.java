@@ -28,4 +28,7 @@ public class JwtAuthBundleConfiguration {
 
     @Default
     private String authHeader = "Authorization";
+
+    @Default
+    private boolean tokenGenEndpoint = false;
 }

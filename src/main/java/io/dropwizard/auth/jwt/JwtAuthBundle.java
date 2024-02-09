@@ -7,6 +7,7 @@ import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.resources.TokenResource;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.nio.charset.StandardCharsets;
 import lombok.Getter;
 import org.jose4j.jwa.AlgorithmConstraints;
 import org.jose4j.jwa.AlgorithmConstraints.ConstraintType;
@@ -17,23 +18,17 @@ import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.keys.AesKey;
 
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
-
+@Getter
 public abstract class JwtAuthBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
-  private Key key;
-
-  @Getter
   private JwtConsumer jwtConsumer;
 
-  @Getter
   private JsonWebEncryption jwe;
 
   @Override
-  public void run(T configuration, Environment environment) throws Exception {
+  public void run(T configuration, Environment environment) {
     var jwtAuthBundleConfiguration = getJwtAuthBundleConfiguration(configuration);
-    key = new AesKey(jwtAuthBundleConfiguration.getKey().getBytes(StandardCharsets.UTF_8));
+    var key = new AesKey(jwtAuthBundleConfiguration.getKey().getBytes(StandardCharsets.UTF_8));
     jwtConsumer = new JwtConsumerBuilder()
         .setRequireJwtId()
         .setAllowedClockSkewInSeconds(jwtAuthBundleConfiguration.getClockSkew())
@@ -59,7 +54,9 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
             .cacheSize(jwtAuthBundleConfiguration.getCacheMaxSize())
         .build());
     environment.jersey().register(new JwtUserValueFactoryProvider.Binder<>(JwtUser.class));
-    environment.jersey().register(TokenResource.builder().jwe(jwe).build());
+    if(jwtAuthBundleConfiguration.isTokenGenEndpoint()) {
+      environment.jersey().register(TokenResource.builder().jwe(jwe).build());
+    }
   }
 
   @Override
@@ -67,9 +64,7 @@ public abstract class JwtAuthBundle<T extends Configuration> implements Configur
 
   }
 
-  protected JwtAuthBundleConfiguration getJwtAuthBundleConfiguration(T configuration) {
-    return new JwtAuthBundleConfiguration();
-  }
+  protected abstract JwtAuthBundleConfiguration getJwtAuthBundleConfiguration(T configuration);
 
   protected JwtAuthorizer authorizer() {
     return null;
