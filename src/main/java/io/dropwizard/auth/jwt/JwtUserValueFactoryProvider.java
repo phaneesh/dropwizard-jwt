@@ -9,7 +9,6 @@ import org.glassfish.jersey.server.internal.inject.MultivaluedParameterExtractor
 import org.glassfish.jersey.server.model.Parameter;
 import org.glassfish.jersey.server.spi.internal.ValueParamProvider;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.security.Principal;
@@ -34,7 +33,6 @@ public class JwtUserValueFactoryProvider <T extends Principal> extends AbstractV
     this.principalClass = principalClassProvider.clazz;
   }
 
-  @Nullable
   @Override
   protected Function<ContainerRequest, ?> createValueProvider(Parameter parameter) {
     if (!parameter.isAnnotationPresent(JwtAuthRequired.class)) {

@@ -4,7 +4,7 @@
 
     <groupId>io.raven.dropwizard.auth</groupId>
     <artifactId>dropwizard-jwt</artifactId>
-    <version>2.1.12-1</version>
+    <version>3.0.7-1</version>
     <packaging>jar</packaging>
 
     <name>dropwizard-jwt</name>
@@ -46,10 +46,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <dropwizard.version>2.1.12</dropwizard.version>
-        <jose4j.version>0.9.4</jose4j.version>
-        <lombok.version>1.18.30</lombok.version>
-        <junit.version>4.13.2</junit.version>
+        <dropwizard.version>3.0.7</dropwizard.version>
+        <jose4j.version>0.9.6</jose4j.version>
+        <lombok.version>1.18.32</lombok.version>
         <caffeine.version>3.1.8</caffeine.version>
     </properties>
 

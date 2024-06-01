@@ -1,13 +1,14 @@
 package io.dropwizard.auth.jwt;
 
-import io.dropwizard.Configuration;
-import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.resources.TokenResource;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
 import java.nio.charset.StandardCharsets;
+
+import io.dropwizard.core.Configuration;
+import io.dropwizard.core.ConfiguredBundle;
+import io.dropwizard.core.setup.Bootstrap;
+import io.dropwizard.core.setup.Environment;
 import lombok.Getter;
 import org.jose4j.jwa.AlgorithmConstraints;
 import org.jose4j.jwa.AlgorithmConstraints.ConstraintType;
