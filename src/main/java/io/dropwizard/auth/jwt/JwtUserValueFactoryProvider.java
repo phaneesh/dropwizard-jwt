@@ -1,6 +1,5 @@
 package io.dropwizard.auth.jwt;
 
-import io.dropwizard.auth.AuthValueFactoryProvider;
 import io.dropwizard.auth.jwt.annotation.JwtAuthRequired;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 import org.glassfish.jersey.server.ContainerRequest;

@@ -63,13 +63,13 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
   public void configure(ResourceInfo resourceInfo, FeatureContext context) {
     final AnnotatedMethod am = new AnnotatedMethod(resourceInfo.getResourceMethod());
     final Annotation[][] parameterAnnotations = am.getParameterAnnotations();
-    for (int i = 0; i < parameterAnnotations.length; i++) {
-      var jwt = containsJWTAnnotation(parameterAnnotations[i]);
-      if (Objects.nonNull(jwt)) {
-        context.register(getAuthFilter(jwt));
-        return;
+      for (Annotation[] parameterAnnotation : parameterAnnotations) {
+          var jwt = containsJWTAnnotation(parameterAnnotation);
+          if (Objects.nonNull(jwt)) {
+              context.register(getAuthFilter(jwt));
+              return;
+          }
       }
-    }
   }
 
   private JwtAuthRequired containsJWTAnnotation(final Annotation[] annotations) {
@@ -96,14 +96,19 @@ public class JwtAuthDynamicFeature implements DynamicFeature {
         throw new WebApplicationException(Response.Status.UNAUTHORIZED);
       }
       final String token =
-          authHeader.startsWith("Bearer:") ? authHeader.replace("Bearer:", "").trim() : authHeader;
+          authHeader.trim().startsWith("Bearer") ? authHeader.replace("Bearer", "").trim() : authHeader.trim();
       JwtUser user;
       try {
         user = tokenCache.get(token);
         boolean authorize = false;
         authorize = Arrays.asList(authRequired.value()).contains("*");
         if (!authorize) {
-          authorize = user.getClaims().getAudience().contains("audience");
+          for(String audience : user.getClaims().getAudience()) {
+            if (Arrays.asList(authRequired.value()).contains(audience)) {
+              authorize = true;
+              break;
+            }
+          }
         }
         if (Objects.nonNull(authRequired.authParams())) {
           for (JwtAuthParam param : authRequired.authParams()) {
