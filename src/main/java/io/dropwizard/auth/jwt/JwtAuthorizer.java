@@ -1,8 +1,9 @@
 package io.dropwizard.auth.jwt;
 
+import jakarta.ws.rs.container.ContainerRequestContext;
 import org.jose4j.jwt.JwtClaims;
 
-import javax.ws.rs.container.ContainerRequestContext;
+
 
 public interface JwtAuthorizer {
 

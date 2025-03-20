@@ -3,6 +3,7 @@ package io.dropwizard.auth.jwt;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import org.glassfish.jersey.server.ContainerRequest;
 
+
 import java.security.Principal;
 
 class PrincipalContainerRequestValueFactory {

@@ -1,7 +1,5 @@
 package io.dropwizard.auth.jwt.annotation;
 
-import com.google.common.collect.Multimap;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

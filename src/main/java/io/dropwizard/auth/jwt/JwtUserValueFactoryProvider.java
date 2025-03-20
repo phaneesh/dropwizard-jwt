@@ -1,7 +1,8 @@
 package io.dropwizard.auth.jwt;
 
-import io.dropwizard.auth.AuthValueFactoryProvider;
 import io.dropwizard.auth.jwt.annotation.JwtAuthRequired;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.glassfish.jersey.internal.inject.AbstractBinder;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.internal.inject.AbstractValueParamProvider;
@@ -9,8 +10,6 @@ import org.glassfish.jersey.server.internal.inject.MultivaluedParameterExtractor
 import org.glassfish.jersey.server.model.Parameter;
 import org.glassfish.jersey.server.spi.internal.ValueParamProvider;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.security.Principal;
 import java.util.function.Function;
 

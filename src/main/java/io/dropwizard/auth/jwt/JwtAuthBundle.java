@@ -3,8 +3,6 @@ package io.dropwizard.auth.jwt;
 import io.dropwizard.auth.jwt.config.JwtAuthBundleConfiguration;
 import io.dropwizard.auth.jwt.core.JwtUser;
 import io.dropwizard.auth.jwt.resources.TokenResource;
-import java.nio.charset.StandardCharsets;
-
 import io.dropwizard.core.Configuration;
 import io.dropwizard.core.ConfiguredBundle;
 import io.dropwizard.core.setup.Bootstrap;
@@ -18,6 +16,8 @@ import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.keys.AesKey;
+
+import java.nio.charset.StandardCharsets;
 
 @Getter
 public abstract class JwtAuthBundle<T extends Configuration> implements ConfiguredBundle<T> {
